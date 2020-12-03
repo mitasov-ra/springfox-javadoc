@@ -39,7 +39,7 @@ public class JavadocModelPropertyBuilderPlugin implements ModelPropertyBuilderPl
             String key = field.getDeclaringClass().getName() + "." + field.getName();
             String notes = environment.getProperty(key);
             if (notes != null) {
-                context.getBuilder().description(notes);
+                context.getSpecificationBuilder().description(notes);
             }
         }
     }

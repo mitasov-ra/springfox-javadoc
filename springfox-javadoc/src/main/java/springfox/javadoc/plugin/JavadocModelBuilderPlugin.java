@@ -35,7 +35,9 @@ public class JavadocModelBuilderPlugin implements ModelBuilderPlugin {
     public void apply(ModelContext context) {
         String notes = environment.getProperty(context.getType().getTypeName());
         if (notes != null) {
-            context.getBuilder().description(notes);
+            context.getModelSpecificationBuilder()
+                    .facets(facets -> facets.description(notes))
+                    .build();
         }
     }
 
