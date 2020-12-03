@@ -11,21 +11,18 @@ configurations {
 
 dependencies {
     springfoxDoclet project(":springfox-javadoc")
-    implementation platform("org.springframework.boot:spring-boot-dependencies:2.1.3.RELEASE")
-    implementation("io.springfox:springfox-spring-webmvc:3.0.0-SNAPSHOT")
-    implementation("io.springfox:springfox-bean-validators:3.0.0-SNAPSHOT")
-    implementation("io.springfox:springfox-swagger-ui:3.0.0-SNAPSHOT")
-    implementation("io.springfox:springfox-swagger2:3.0.0-SNAPSHOT")
+    implementation platform("org.springframework.boot:spring-boot-dependencies:2.4.0")
+    implementation 'io.springfox:springfox-boot-starter:3.0.0'
     implementation project(":springfox-javadoc")
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation "org.springframework.boot:spring-boot-starter-web"
 }
 
 task generateSwaggerApiDocs(type: Javadoc) {
     source = sourceSets.main.allJava
     destinationDir = reporting.file("rest-api-docs")
     options.doclet = "springfox.javadoc.doclet.SwaggerPropertiesDoclet"
-    options.docletpath = configurations.springfoxDoclet.files.asType(List)
-    options.classpath = configurations.runtimeClasspath.files.asType(List)
+    options.docletpath = configurations.springfoxDoclet.files as List
+    options.classpath = configurations.runtimeClasspath.files as List
     verbose = true
 }
 

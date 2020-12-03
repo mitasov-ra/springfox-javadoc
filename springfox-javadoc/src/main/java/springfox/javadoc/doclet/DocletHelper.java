@@ -19,12 +19,21 @@
 package springfox.javadoc.doclet;
 
 import com.sun.source.doctree.DocCommentTree;
+import com.sun.source.doctree.DocTree;
 import jdk.javadoc.doclet.DocletEnvironment;
+import org.apache.commons.text.StringEscapeUtils;
 
-import javax.lang.model.element.*;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Name;
+import javax.lang.model.element.TypeElement;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 class DocletHelper {
 
@@ -60,13 +69,33 @@ class DocletHelper {
         return Optional.empty();
     }
 
-    static Optional<String> getElementDoc(DocletEnvironment docletEnvironment, Element typeElement) {
-        DocCommentTree docCommentTree = docletEnvironment.getDocTrees().getDocCommentTree(typeElement);
-        if (docCommentTree != null) {
-            return Optional.of(docCommentTree.getFullBody().toString());
-        } else {
-            return Optional.empty();
-        }
+    static Optional<String> getFullBody(DocletEnvironment environment, Element element) {
+        return getDocCommentTree(environment, element)
+                .map(DocletHelper::getFullBody);
+    }
+
+    static String getFirstSentence(DocCommentTree docCommentTree) {
+        return docTreesToStr(docCommentTree.getFirstSentence());
+    }
+
+    static String getFullBody(DocCommentTree docCommentTree) {
+        return docTreesToStr(docCommentTree.getFullBody());
+    }
+
+    static Optional<DocCommentTree> getDocCommentTree(DocletEnvironment environment, Element element) {
+        DocCommentTree docCommentTree = environment.getDocTrees().getDocCommentTree(element);
+
+        return Optional.ofNullable(docCommentTree);
+    }
+
+    static String docTreesToStr(List<? extends DocTree> trees) {
+        return trees.stream()
+                .map(DocTree::toString)
+                // toString in DCTree uses DocPretty, which uses Convert.escapeUnicode
+                // here we need to unescape escaped string to store (and then display)
+                // Unicode characters (e.g. cyrillic) properly
+                .map(StringEscapeUtils::unescapeJava)
+                .collect(Collectors.joining());
     }
 
 }

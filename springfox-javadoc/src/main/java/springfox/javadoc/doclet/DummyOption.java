@@ -29,8 +29,8 @@ import java.util.List;
  */
 public class DummyOption implements Doclet.Option {
 
-    private int argumentCount;
-    private String name;
+    private final int argumentCount;
+    private final String name;
 
     DummyOption(int argumentCount, String name) {
         this.argumentCount = argumentCount;

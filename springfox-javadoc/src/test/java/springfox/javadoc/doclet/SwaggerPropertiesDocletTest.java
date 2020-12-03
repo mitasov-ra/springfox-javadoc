@@ -20,6 +20,8 @@ package springfox.javadoc.doclet;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import springfox.javadoc.example.OtherController;
+import springfox.javadoc.example.RussianDocsController;
 import springfox.javadoc.example.SecretAgent;
 import springfox.javadoc.example.TestController;
 
@@ -78,6 +80,8 @@ public class SwaggerPropertiesDocletTest {
 
         Properties props = generatedProperties();
         assertEquals("test controller class", props.getProperty(TestController.class.getName()));
+        assertEquals("other controller class", props.getProperty(OtherController.class.getName()));
+        assertEquals("Документация контроллера на русском\n\n <p>Несколько строк документации<p/>", props.getProperty(RussianDocsController.class.getName()));
         assertEquals("Secret Agent, it can be James Bond!", props.getProperty(SecretAgent.class.getName()));
         assertEquals("Secret agent name, probably something badass", props.getProperty(SecretAgent.class.getName()+".secretAgentName"));
         assertEquals("test method", props.getProperty("/test/test.GET.notes"));
@@ -85,7 +89,7 @@ public class SwaggerPropertiesDocletTest {
         assertEquals("dummy param", props.getProperty("/test/test.GET.param.param"));
         assertEquals("without value or path", props.getProperty("/test.POST.notes"));
         assertEquals("other without value or path", props.getProperty("/other.POST.notes"));
-        assertEquals("other without value or path other line in delete mapping", props.getProperty("/other.DELETE.notes"));
+        assertEquals("other without value or path\n other line in delete mapping", props.getProperty("/other.DELETE.notes"));
         assertEquals("InvalidNameException-when parameter smaller than 1", props.getProperty("/other/test.GET.throws.1"));
         assertEquals("retval", props.getProperty("/test.POST.return"));
         assertEquals("param", props.getProperty("/test.POST.param.bar"));

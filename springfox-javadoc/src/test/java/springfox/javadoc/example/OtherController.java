@@ -24,8 +24,8 @@ import javax.naming.InvalidNameException;
 import java.io.IOException;
 
 /**
- * test controller class
- * 
+ * other controller class
+ *
  * @author Matthieu Ghilain
  */
 @RequestMapping(path = "/other", method = RequestMethod.PUT)
@@ -53,7 +53,7 @@ public class OtherController {
 
     /**
      * other without value or path
-     * 
+     *
      * @param bar
      *            param
      * @return retval

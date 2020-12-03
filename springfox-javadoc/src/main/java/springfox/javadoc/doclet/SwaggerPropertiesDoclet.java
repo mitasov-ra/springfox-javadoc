@@ -22,7 +22,9 @@ import com.sun.source.doctree.*;
 import jdk.javadoc.doclet.Doclet;
 import jdk.javadoc.doclet.DocletEnvironment;
 import jdk.javadoc.doclet.Reporter;
+import org.apache.commons.text.StringEscapeUtils;
 import springfox.javadoc.plugin.JavadocParameterBuilderPlugin;
+
 
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
@@ -32,7 +34,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
 
 /**
  * Generate properties file based on Javadoc.
@@ -45,10 +52,7 @@ import java.util.*;
  */
 public class SwaggerPropertiesDoclet implements Doclet {
 
-    private static final String NEWLINE = "\n";
-    private static final String EMPTY = "";
-
-    private ClassDirectoryOption classDirectoryOption = new ClassDirectoryOption();
+    private final ClassDirectoryOption classDirectoryOption = new ClassDirectoryOption();
     private Reporter reporter;
     private OutputStream springfoxPropertiesOutputStream;
     private DocletEnvironment environment;
@@ -64,11 +68,14 @@ public class SwaggerPropertiesDoclet implements Doclet {
     }
 
     private static void saveProperty(
-      Properties properties,
-      String key,
-      String value) {
+            Properties properties,
+            String key,
+            String value) {
 
-        value = value.replaceAll(NEWLINE, EMPTY);
+        // unescape previously escaped in DCTree.toString key
+        // fixes bug with mappings with UTF characters (e.g. cyrillic RegExp)
+        key = StringEscapeUtils.unescapeJava(key);
+
         if (value.length() > 0) {
             properties.setProperty(key, value);
         }
@@ -95,7 +102,7 @@ public class SwaggerPropertiesDoclet implements Doclet {
 
     @Override
     public SourceVersion getSupportedSourceVersion() {
-        return SourceVersion.RELEASE_9;
+        return SourceVersion.RELEASE_11;
     }
 
     @Override
@@ -148,7 +155,7 @@ public class SwaggerPropertiesDoclet implements Doclet {
         for (Element classMember : environment.getElementUtils().getAllMembers(typeElement)) {
             if (classMember.getKind().isField()) {
                 VariableElement variableElement = (VariableElement) classMember;
-                DocletHelper.getElementDoc(environment, variableElement)
+                DocletHelper.getFullBody(environment, variableElement)
                   .ifPresent(variableDoc -> {
                       String classKey =
                         typeElement.getQualifiedName().toString() + "." + variableElement.getSimpleName().toString();
@@ -165,16 +172,21 @@ public class SwaggerPropertiesDoclet implements Doclet {
      */
     private void storeClassMethodAsProperties(TypeElement typeElement, Properties properties) {
         methodProcessingContextFactory.from(typeElement)
-          .ifPresent(methodProcessingContext -> {
-              environment.getElementUtils().getAllMembers(typeElement).stream()
-                .filter(element -> element.getKind() == ElementKind.METHOD)
-                .forEach(methodElement -> this.processMethod(properties, methodProcessingContext, methodElement));
-          });
+                .ifPresent(methodProcessingContext -> environment
+                        .getElementUtils()
+                        .getAllMembers(typeElement)
+                        .stream()
+                        .filter(element -> element.getKind() == ElementKind.METHOD)
+                        .forEach(methodElement -> this.processMethod(properties, methodProcessingContext, methodElement))
+                );
     }
 
     private void storeClassJavadocAsProperty(TypeElement typeElement, Properties properties) {
-        DocletHelper.getElementDoc(environment, typeElement)
-          .ifPresent(typeElementDoc -> properties.put(typeElement.getQualifiedName().toString(), typeElementDoc));
+        DocletHelper.getFullBody(environment, typeElement)
+                .ifPresent(typeElementDoc -> properties.put(
+                        typeElement.getQualifiedName().toString(),
+                        typeElementDoc
+                ));
     }
 
     private void storeProperties(TypeElement typeElement, Properties properties) {
@@ -188,34 +200,56 @@ public class SwaggerPropertiesDoclet implements Doclet {
     private void processMethod(Properties properties, MethodProcessingContext methodProcessingContext,
                                Element methodElement) {
         for (AnnotationMirror annotationMirror : environment.getElementUtils().getAllAnnotationMirrors(methodElement)) {
-            if (SpringRequestMappings.isMapping(annotationMirror)) {
-                String path = getMappingFullPath(methodProcessingContext, annotationMirror);
-                String requestMethod = SpringRequestMappings.getRequestMethod(annotationMirror,
-                  methodProcessingContext.getDefaultRequestMethod());
-                if (requestMethod != null) {
-                    path = path + requestMethod;
-                    DocCommentTree docCommentTree = environment.getDocTrees().getDocCommentTree(methodElement);
-                    saveProperty(properties, path + ".notes", docCommentTree.getFullBody().toString());
-                    int throwIndex = 0;
-                    for (DocTree docTree : docCommentTree.getBlockTags()) {
-                        if (docTree instanceof ParamTree) {
-                            ParamTree paramTree = (ParamTree) docTree;
-                            saveProperty(properties, path + ".param." + paramTree.getName(),
-                              paramTree.getDescription().toString());
-                        }
-                        if (docTree instanceof ReturnTree) {
-                            ReturnTree returnTree = (ReturnTree) docTree;
-                            saveProperty(properties, path + ".return", returnTree.getDescription().toString());
-                        }
-                        if (docTree instanceof ThrowsTree) {
-                            ThrowsTree throwTree = (ThrowsTree) docTree;
-                            String key = path + ".throws." + throwIndex;
-                            String value =
-                              throwTree.getExceptionName().getSignature() + "-" + throwTree.getDescription().toString();
-                            saveProperty(properties, key, value);
-                            throwIndex++;
-                        }
-                    }
+            if (!SpringRequestMappings.isMapping(annotationMirror)) {
+                continue;
+            }
+
+            String path = getMappingFullPath(methodProcessingContext, annotationMirror);
+            String requestMethod = SpringRequestMappings.getRequestMethod(annotationMirror,
+              methodProcessingContext.getDefaultRequestMethod());
+
+            if (requestMethod == null) {
+                continue;
+            }
+
+            path = path + requestMethod;
+
+            Optional<DocCommentTree> maybeDocCommentTree = DocletHelper
+                    .getDocCommentTree(environment, methodElement);
+
+            if (maybeDocCommentTree.isEmpty()) {
+                continue;
+            }
+
+            var docCommentTree = maybeDocCommentTree.get();
+
+            String summary = DocletHelper.getFirstSentence(docCommentTree);
+
+            String description = DocletHelper.getFullBody(docCommentTree);
+
+            saveProperty(properties, path + ".summary", summary);
+            saveProperty(properties, path + ".notes", description);
+
+            int throwIndex = 0;
+
+            for (DocTree docTree : docCommentTree.getBlockTags()) {
+                if (docTree instanceof ParamTree) {
+                    ParamTree paramTree = (ParamTree) docTree;
+                    saveProperty(properties, path + ".param." + paramTree.getName(),
+                            DocletHelper.docTreesToStr(paramTree.getDescription()));
+                }
+                if (docTree instanceof ReturnTree) {
+                    ReturnTree returnTree = (ReturnTree) docTree;
+                    saveProperty(properties, path + ".return",
+                            DocletHelper.docTreesToStr(returnTree.getDescription()));
+                }
+                if (docTree instanceof ThrowsTree) {
+                    ThrowsTree throwTree = (ThrowsTree) docTree;
+                    String key = path + ".throws." + throwIndex;
+                    String value =
+                      throwTree.getExceptionName().getSignature() + "-" + DocletHelper.docTreesToStr(throwTree.getDescription());
+                    saveProperty(properties, key, value);
+                    throwIndex++;
                 }
             }
         }

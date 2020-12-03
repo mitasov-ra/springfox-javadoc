@@ -75,7 +75,7 @@ public class JavadocParameterBuilderPlugin implements ParameterBuilderPlugin {
         Annotation apiParam = annotationFromField(context, API_PARAM);
         if (apiParam != null) {
             java.util.Optional<Boolean> isRequired = isParamRequired(apiParam, context);
-            isRequired.ifPresent(aBoolean -> context.parameterBuilder().required(aBoolean));
+            isRequired.ifPresent(aBoolean -> context.requestParameterBuilder().required(aBoolean));
         }
         if (parameterName.isPresent() && (apiParam == null || !hasValue(apiParam))) {
             String key = context.getOperationContext().requestMappingPattern() + PERIOD
@@ -83,7 +83,7 @@ public class JavadocParameterBuilderPlugin implements ParameterBuilderPlugin {
             description = environment.getProperty(key);
         }
         if (description != null) {
-            context.parameterBuilder().description(description);
+            context.requestParameterBuilder().description(description);
         }
     }
 

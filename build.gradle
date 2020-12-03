@@ -14,8 +14,8 @@ allprojects {
 
     group = 'io.springfox'
 
-    sourceCompatibility = 1.9
-    targetCompatibility = 1.9
+    sourceCompatibility = 11
+    targetCompatibility = 11
 
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'

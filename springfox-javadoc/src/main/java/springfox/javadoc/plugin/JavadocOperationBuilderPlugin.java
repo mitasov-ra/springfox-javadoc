@@ -50,8 +50,14 @@ public class JavadocOperationBuilderPlugin implements OperationBuilderPlugin {
 
         String notes = context.requestMappingPattern() + PERIOD + context.httpMethod().toString() + ".notes";
         if (StringUtils.hasText(notes) && StringUtils.hasText(environment.getProperty(notes))) {
-            context.operationBuilder().notes("<b>" + context.getName() + "</b><br/>" + environment.getProperty(notes));
+            context.operationBuilder().notes(environment.getProperty(notes));
         }
+
+        String summary = context.requestMappingPattern() + PERIOD + context.httpMethod().toString() + ".summary";
+        if (StringUtils.hasText(summary) && StringUtils.hasText(environment.getProperty(summary))) {
+            context.operationBuilder().summary(environment.getProperty(summary));
+        }
+
         String returnDescription = context.requestMappingPattern() + PERIOD + context.httpMethod().toString()
           + ".return";
         if (StringUtils.hasText(returnDescription) && StringUtils.hasText(environment.getProperty(returnDescription))) {

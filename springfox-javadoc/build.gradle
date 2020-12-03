@@ -8,11 +8,19 @@ apply plugin: 'checkstyle'
 description = "springfox-javadoc"
 
 dependencies {
-    implementation 'io.springfox:springfox-swagger2:3.0.0-SNAPSHOT'
-    implementation 'org.springframework:spring-webmvc:5.0.7.RELEASE'
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.9.8")
+    implementation 'io.springfox:springfox-swagger2:3.0.0'
+    implementation 'org.springframework.boot:spring-boot:2.4.0'
+    implementation 'org.springframework:spring-webmvc:5.3.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.10.1'
+
+    implementation 'org.apache.commons:commons-text:1.9'
+
     testImplementation 'junit:junit:4.12'
     testImplementation  'org.mockito:mockito-core:2.21.0'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:2.4.0'
+    annotationProcessor 'org.projectlombok:lombok:1.18.16'
+    compileOnly 'org.projectlombok:lombok:1.18.16'
 }
 
 jacocoTestReport {
